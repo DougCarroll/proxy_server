@@ -5,9 +5,11 @@ The target URL is read from target_url.txt in the same directory and can be chan
 """
 
 import os
+from pathlib import Path
+from urllib.parse import urlparse
+
 import requests
 from flask import Flask, request, Response
-from pathlib import Path
 
 app = Flask(__name__)
 
@@ -32,15 +34,19 @@ def get_target_url():
 def proxy_request():
     """Forward the incoming request to the target URL and return the response."""
     target_base = get_target_url()
+    # Use only the part before '#' for the base (fragment is never sent to servers)
+    if "#" in target_base:
+        target_base = target_base.split("#", 1)[0].rstrip("/")
+    else:
+        target_base = target_base.rstrip("/")
     # Preserve path and query string from the original request
     path = request.path
     if request.query_string:
         path = f"{path}?{request.query_string.decode()}"
     target_url = f"{target_base}{path}"
 
-    # Build headers for the upstream request (exclude Hop-by-Hop and Host)
+    # Build headers for the upstream request (exclude Hop-by-Hop)
     exclude_headers = {
-        "host",
         "connection",
         "keep-alive",
         "proxy-authenticate",
@@ -55,6 +61,10 @@ def proxy_request():
         for k, v in request.headers
         if k.lower() not in exclude_headers
     }
+    # Set Host to the target host so the origin server sees the correct host
+    parsed = urlparse(target_url)
+    if parsed.netloc:
+        headers["Host"] = parsed.netloc
 
     try:
         resp = requests.request(

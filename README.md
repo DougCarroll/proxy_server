@@ -58,7 +58,7 @@ The server binds to `0.0.0.0` so it accepts connections from other hosts.
 
 All common HTTP methods (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS) are forwarded. Headers and body are passed through (except hop-by-hop headers). Redirect responses (3xx) that point to the target host are rewritten to point back to the proxy so the browser stays on the proxy.
 
-**Proxying full web apps (e.g. Orca):** Many apps load additional resources and API calls using absolute URLs to their own domain. Those requests may bypass the proxy (browser goes directly to the app). This proxy does not rewrite HTML/JS; it only rewrites redirect `Location` headers. For “link in target_url and browse through proxy” to work fully, the app would need to use relative URLs or the same host.
+**Proxying full web apps (e.g. Orca):** Response bodies for HTML, JavaScript, CSS, and JSON are rewritten so that absolute URLs to the target host (e.g. `https://app.getorca.com`) are replaced with the proxy URL. That way the browser loads assets and API calls through the proxy instead of going directly to the target. **WebSockets** are not proxied; if the app uses `wss://` or `ws://`, those connections may fail or go directly to the target depending on the app.
 
 ### Debug
 

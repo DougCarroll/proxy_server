@@ -5,6 +5,17 @@
 set -e
 cd "$(dirname "$0")"
 
+# Check that python3-venv is available (required on Debian/Ubuntu)
+tmp_venv=$(mktemp -d)
+if ! python3 -m venv "$tmp_venv" 2>/dev/null; then
+  rm -rf "$tmp_venv"
+  echo "python3-venv is not installed. On Debian/Ubuntu run:"
+  echo "  sudo apt update && sudo apt install -y python3-venv"
+  echo "Then run ./install.sh again."
+  exit 1
+fi
+rm -rf "$tmp_venv"
+
 echo "Creating virtual environment..."
 python3 -m venv venv
 

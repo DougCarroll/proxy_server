@@ -94,4 +94,5 @@ if __name__ == "__main__":
     print(f"Proxy listening on port {port}")
     print(f"Target URL file: {TARGET_URL_FILE}")
     print(f"Current target: {get_target_url()}")
+    print("Connect with HTTP only (not HTTPS), e.g. http://your-server:5010/")
     app.run(host="0.0.0.0", port=port, threaded=True)

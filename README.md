@@ -50,6 +50,8 @@ The server binds to `0.0.0.0` so it accepts connections from other hosts.
 
 ## Usage
 
+**Use HTTP when connecting to the proxy** (the proxy does not speak HTTPS on this port). The proxy can still forward to HTTPS targets.
+
 - Proxy: `http://your-server:5010`
 - Request: `GET http://your-server:5010/anything/foo?bar=1`
 - Proxied to: `{target_url}/anything/foo?bar=1`

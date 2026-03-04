@@ -1,0 +1,27 @@
+# Config with target URL - may contain private URLs or credentials; never commit
+target_url.txt
+
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+secrets/
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+*.log
+.cursor/

@@ -283,5 +283,6 @@ if __name__ == "__main__":
     print(f"Current target: {get_target_url()}")
     if DEBUG:
         print("DEBUG: request logging enabled", file=sys.stderr, flush=True)
+        print("Test from this machine: curl -s -o /dev/null http://127.0.0.1:5010/", file=sys.stderr, flush=True)
     print("Connect with HTTP only (not HTTPS), e.g. http://your-server:5010/")
     app.run(host="0.0.0.0", port=port, threaded=True)

@@ -9,4 +9,5 @@ if [ ! -d venv ]; then
   exit 1
 fi
 
-exec venv/bin/python proxy_server.py
+# Pass through DEBUG so "DEBUG=1 ./run.sh" enables request logging
+exec env DEBUG="${DEBUG}" venv/bin/python proxy_server.py

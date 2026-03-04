@@ -78,11 +78,11 @@ def proxy_request():
         )
     except requests.RequestException as e:
         if DEBUG:
-            print(f"Upstream error: {e}")
+            print(f"Upstream error: {e}", flush=True)
         return str(e), 502
 
     if DEBUG:
-        print(f"{request.method} {path} -> {resp.status_code} {target_url}")
+        print(f"{request.method} {path} -> {resp.status_code} {target_url}", flush=True)
 
     # Build response headers (exclude Hop-by-Hop from upstream)
     response_headers = []
@@ -106,7 +106,7 @@ def proxy_request():
                         path_qs += "#" + loc_parsed.fragment
                     v = proxy_base + path_qs
                     if DEBUG:
-                        print(f"  Location rewritten -> {v}")
+                        print(f"  Location rewritten -> {v}", flush=True)
             except Exception:
                 pass
         response_headers.append((k, v))
@@ -130,5 +130,7 @@ if __name__ == "__main__":
     print(f"Proxy listening on port {port}")
     print(f"Target URL file: {TARGET_URL_FILE}")
     print(f"Current target: {get_target_url()}")
+    if DEBUG:
+        print("DEBUG: request logging enabled", flush=True)
     print("Connect with HTTP only (not HTTPS), e.g. http://your-server:5010/")
     app.run(host="0.0.0.0", port=port, threaded=True)

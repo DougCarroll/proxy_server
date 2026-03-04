@@ -96,3 +96,47 @@ sudo systemctl enable proxy
 sudo systemctl start proxy
 sudo systemctl status proxy
 ```
+
+---
+
+## Cloudflare Orca redirect (macOS)
+
+A separate script keeps the **wm7i.com/orca** Cloudflare Page Rule forwarding URL in sync with a local file. When that file changes, the script updates the Page Rule via the Cloudflare API.
+
+### Setup
+
+1. **Create a Page Rule in Cloudflare** for `wm7i.com/orca` (or a URL pattern that contains `orca`) with “Forwarding URL” to any destination. You will update the destination via the script.
+
+2. **Environment variables** (required):
+   - `CLOUDFLARE_API_TOKEN` – API token with Zone/Page Rules edit (e.g. “Edit zone DNS” + “Page Rules”).
+   - `CLOUDFLARE_ZONE_ID` – Zone ID for wm7i.com (from the zone’s Overview in the dashboard).
+
+   Optional:
+   - `ORCA_URL_FILE` – Path to the URL file (default: `…/FilingCabinet/Burnt Toast/AppData/orca_url.txt` on this Mac).
+
+3. **URL file**  
+   Default path on this Mac:
+   ```
+   ~/Library/Mobile Documents/com~apple~CloudDocs/FilingCabinet/Burnt Toast/AppData/orca_url.txt
+   ```
+   Put a single destination URL per line (first non-empty, non-`#` line is used), e.g.:
+   ```
+   https://app.getorca.com/#live/43sin4W6tqm6zABv
+   ```
+
+### Run
+
+- **Watch and sync** (runs until you Ctrl+C):
+  ```bash
+  export CLOUDFLARE_API_TOKEN=your_token
+  export CLOUDFLARE_ZONE_ID=your_zone_id
+  ./run_cloudflare_sync.sh
+  ```
+  Whenever `orca_url.txt` is modified, the script updates the Page Rule’s forwarding URL to match.
+
+- **One-off sync** (no watcher):
+  ```bash
+  ./run_cloudflare_sync.sh --once
+  ```
+
+Runs on macOS; only `requests` is required (same venv as the proxy).

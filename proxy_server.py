@@ -6,11 +6,13 @@ The target URL is read from target_url.txt in the same directory and can be chan
 
 import os
 import sys
+import threading
 from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
 from flask import Flask, request, Response
+from simple_websocket import Client, ConnectionClosed, Server
 
 app = Flask(__name__)
 DEBUG = os.environ.get("DEBUG", "").lower() in ("1", "true", "yes")
@@ -74,14 +76,94 @@ def rewrite_response_body(
     return text.encode("utf-8")
 
 
+def _handle_websocket():
+    """Accept client WebSocket, connect to upstream wss, and tunnel bidirectionally."""
+    target_base = get_target_url()
+    if "#" in target_base:
+        target_base = target_base.split("#", 1)[0].rstrip("/")
+    else:
+        target_base = target_base.rstrip("/")
+    parsed = urlparse(target_base)
+    target_netloc = parsed.netloc
+    scheme = "wss" if (parsed.scheme or "https") == "https" else "ws"
+    path = request.path
+    if request.query_string:
+        path = f"{path}?{request.query_string.decode()}"
+    wss_url = f"{scheme}://{target_netloc}{path}"
+    if DEBUG:
+        print(f"WebSocket tunnel {path} -> {wss_url}", file=sys.stderr, flush=True)
+    try:
+        client_ws = Server.accept(request.environ)
+    except Exception as e:
+        if DEBUG:
+            print(f"WebSocket accept failed: {e}", file=sys.stderr, flush=True)
+        return str(e), 500
+    try:
+        upstream_ws = Client.connect(wss_url)
+    except Exception as e:
+        if DEBUG:
+            print(f"WebSocket upstream connect failed: {e}", file=sys.stderr, flush=True)
+        try:
+            client_ws.close()
+        except Exception:
+            pass
+        return f"Upstream WebSocket failed: {e}", 502
+    try:
+        _ws_tunnel(client_ws, upstream_ws)
+    except Exception as e:
+        if DEBUG:
+            print(f"WebSocket tunnel error: {e}", file=sys.stderr, flush=True)
+    return ""
+
+
+def _ws_tunnel(client_ws: Server, upstream_ws: Client) -> None:
+    """Run bidirectional WebSocket tunnel; return when either side closes."""
+    done = threading.Event()
+
+    def forward_to_upstream():
+        try:
+            while True:
+                data = client_ws.receive()
+                if data is None:
+                    break
+                upstream_ws.send(data)
+        except ConnectionClosed:
+            pass
+        finally:
+            done.set()
+            try:
+                upstream_ws.close()
+            except Exception:
+                pass
+
+    def forward_to_client():
+        try:
+            while True:
+                data = upstream_ws.receive()
+                if data is None:
+                    break
+                client_ws.send(data)
+        except ConnectionClosed:
+            pass
+        finally:
+            done.set()
+            try:
+                client_ws.close()
+            except Exception:
+                pass
+
+    t1 = threading.Thread(target=forward_to_upstream, daemon=True)
+    t2 = threading.Thread(target=forward_to_client, daemon=True)
+    t1.start()
+    t2.start()
+    t1.join()
+    t2.join()
+
+
 def proxy_request():
     """Forward the incoming request to the target URL and return the response."""
-    # Log WebSocket upgrade attempts (we don't proxy WS yet)
     if request.headers.get("Upgrade", "").lower() == "websocket":
-        if DEBUG:
-            path = request.path + ("?" + request.query_string.decode() if request.query_string else "")
-            print(f"WebSocket upgrade to {path} (not proxied - WS not supported)", file=sys.stderr, flush=True)
-        return "WebSocket not supported by this proxy", 426
+        return _handle_websocket()
 
     target_base = get_target_url()
     # Use only the part before '#' for the base (fragment is never sent to servers)

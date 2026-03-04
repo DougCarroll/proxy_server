@@ -58,9 +58,7 @@ The server binds to `0.0.0.0` so it accepts connections from other hosts.
 
 All common HTTP methods (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS) are forwarded. Headers and body are passed through (except hop-by-hop headers). Redirect responses (3xx) that point to the target host are rewritten to point back to the proxy so the browser stays on the proxy.
 
-**Proxying full web apps (e.g. Orca):** Response bodies for HTML, JavaScript, CSS, and JSON are rewritten so that absolute URLs to the target host (e.g. `https://app.getorca.com`) are replaced with the proxy URL. That way the browser loads assets and API calls through the proxy instead of going directly to the target. **WebSockets** are not proxied; if the app uses `wss://` or `ws://`, those connections may fail or go directly to the target depending on the app.
-
-To confirm the app is using WebSockets: (1) Run the proxy with `DEBUG=1`—if you see log lines like `WebSocket upgrade to /path (not proxied - WS not supported)`, the browser is trying to open a WebSocket through the proxy. (2) In the browser, open DevTools → Network tab → filter by "WS"; reload the app and see if any WebSocket entries fail or are blocked.
+**Proxying full web apps (e.g. Orca):** Response bodies for HTML, JavaScript, CSS, and JSON are rewritten so that absolute URLs to the target host (e.g. `https://app.getorca.com`) are replaced with the proxy URL. That way the browser loads assets and API calls through the proxy. **WebSockets** are proxied: when the browser connects to `ws://your-server:5010/...`, the proxy accepts the connection and tunnels it to `wss://target-host/...`, so live features (e.g. Orca live view) work through the proxy.
 
 ### Debug
 

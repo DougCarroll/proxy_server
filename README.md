@@ -56,7 +56,17 @@ The server binds to `0.0.0.0` so it accepts connections from other hosts.
 - Request: `GET http://your-server:5010/anything/foo?bar=1`
 - Proxied to: `{target_url}/anything/foo?bar=1`
 
-All common HTTP methods (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS) are forwarded. Headers and body are passed through (except hop-by-hop headers).
+All common HTTP methods (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS) are forwarded. Headers and body are passed through (except hop-by-hop headers). Redirect responses (3xx) that point to the target host are rewritten to point back to the proxy so the browser stays on the proxy.
+
+**Proxying full web apps (e.g. Orca):** Many apps load additional resources and API calls using absolute URLs to their own domain. Those requests may bypass the proxy (browser goes directly to the app). This proxy does not rewrite HTML/JS; it only rewrites redirect `Location` headers. For “link in target_url and browse through proxy” to work fully, the app would need to use relative URLs or the same host.
+
+### Debug
+
+To log each request and response status (and redirect rewrites), run with:
+
+```bash
+DEBUG=1 ./run.sh
+```
 
 ## Run as a service (systemd)
 

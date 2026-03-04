@@ -12,6 +12,7 @@ import requests
 from flask import Flask, request, Response
 
 app = Flask(__name__)
+DEBUG = os.environ.get("DEBUG", "").lower() in ("1", "true", "yes")
 
 # Directory where this script lives (for finding target_url.txt)
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -76,14 +77,39 @@ def proxy_request():
             timeout=60,
         )
     except requests.RequestException as e:
+        if DEBUG:
+            print(f"Upstream error: {e}")
         return str(e), 502
 
+    if DEBUG:
+        print(f"{request.method} {path} -> {resp.status_code} {target_url}")
+
     # Build response headers (exclude Hop-by-Hop from upstream)
-    response_headers = [
-        (k, v)
-        for k, v in resp.raw.headers.items()
-        if k.lower() not in exclude_headers
-    ]
+    response_headers = []
+    target_netloc = parsed.netloc
+    proxy_base = request.host_url.rstrip("/")
+
+    for k, v in resp.raw.headers.items():
+        if k.lower() in exclude_headers:
+            continue
+        # Rewrite redirect Location so the browser stays on the proxy
+        if k.lower() == "location" and 300 <= resp.status_code < 400:
+            loc = v.strip()
+            try:
+                loc_parsed = urlparse(loc)
+                if loc_parsed.netloc == target_netloc or not loc_parsed.netloc:
+                    # Same host as target or relative: point to proxy so browser stays on proxy
+                    path_qs = loc_parsed.path or "/"
+                    if loc_parsed.query:
+                        path_qs += "?" + loc_parsed.query
+                    if loc_parsed.fragment:
+                        path_qs += "#" + loc_parsed.fragment
+                    v = proxy_base + path_qs
+                    if DEBUG:
+                        print(f"  Location rewritten -> {v}")
+            except Exception:
+                pass
+        response_headers.append((k, v))
 
     return Response(
         resp.content,

@@ -60,6 +60,8 @@ All common HTTP methods (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS) are forwa
 
 **Proxying full web apps (e.g. Orca):** Response bodies for HTML, JavaScript, CSS, and JSON are rewritten so that absolute URLs to the target host (e.g. `https://app.getorca.com`) are replaced with the proxy URL. That way the browser loads assets and API calls through the proxy instead of going directly to the target. **WebSockets** are not proxied; if the app uses `wss://` or `ws://`, those connections may fail or go directly to the target depending on the app.
 
+To confirm the app is using WebSockets: (1) Run the proxy with `DEBUG=1`—if you see log lines like `WebSocket upgrade to /path (not proxied - WS not supported)`, the browser is trying to open a WebSocket through the proxy. (2) In the browser, open DevTools → Network tab → filter by "WS"; reload the app and see if any WebSocket entries fail or are blocked.
+
 ### Debug
 
 To log each request and response status (and redirect rewrites), run with:

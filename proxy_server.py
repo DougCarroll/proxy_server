@@ -76,6 +76,13 @@ def rewrite_response_body(
 
 def proxy_request():
     """Forward the incoming request to the target URL and return the response."""
+    # Log WebSocket upgrade attempts (we don't proxy WS yet)
+    if request.headers.get("Upgrade", "").lower() == "websocket":
+        if DEBUG:
+            path = request.path + ("?" + request.query_string.decode() if request.query_string else "")
+            print(f"WebSocket upgrade to {path} (not proxied - WS not supported)", file=sys.stderr, flush=True)
+        return "WebSocket not supported by this proxy", 426
+
     target_base = get_target_url()
     # Use only the part before '#' for the base (fragment is never sent to servers)
     if "#" in target_base:
